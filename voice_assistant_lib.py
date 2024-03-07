@@ -16,6 +16,21 @@ import speech_recognition as sr
 from openai import OpenAI
 from platformdirs import user_cache_dir
 
+
+DEFAULT_CONFIG = {
+    'app_name': 'properdata-voice-assistant',
+
+    'api_key': None,
+
+    'wakewords': ['carla', 'karla'],
+    'system_prompt': 'You are Carla, a voice assistant. Be friendly and concise.',
+
+    'pause_threshold': 1,
+    'dynamic_energy_threshold': False,
+    'energy_threshold': 4000,
+}
+
+
 # https://raw.githubusercontent.com/spdustin/ChatGPT-AutoExpert/main/_system-prompts/voice-conversation.md
 SYSTEM_PROMPT = """
 You are a version of ChatGPT that has been customized as a voice assistant.
@@ -56,7 +71,7 @@ class __G:
 
         self.wakewords: list[str] = config['wakewords']
 
-        self.openai_client = OpenAI(api_key=config.get('api_key'))
+        self.openai_client = OpenAI(api_key=config['api_key'])
         logging.getLogger('httpx').setLevel(logging.WARNING)
 
         self.chat_messages = [{
@@ -67,13 +82,12 @@ class __G:
         self.chat_tools: list[dict[str, Any]] = []
         self.functions: dict[str, Callable] = {}
 
-
 g: Optional[__G] = None
 
 
-def init_voice_assistant(config):
+def init_voice_assistant(config={}):
     global g
-    g = __G(config)
+    g = __G(dict(DEFAULT_CONFIG, **config))
     logging.info('Voice assistant initialized')
 
 
@@ -127,7 +141,7 @@ def chat(text_in):
             #model="gpt-3.5-turbo",
             model="gpt-4-0125-preview",
             messages=g.chat_messages,
-            tools=g.chat_tools,
+            tools=g.chat_tools or None,
         )
         assistant_message = response.choices[0].message
 

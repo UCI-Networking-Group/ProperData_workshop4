@@ -11,8 +11,6 @@ from voice_assistant_lib import (
 )
 
 CONFIG = {
-    'app_name': 'properdata-voice-assistant',
-
     'wakewords': ['carla', 'karla'],
     'system_prompt': 'You are Carla, a voice assistant. Be friendly and concise.',
 

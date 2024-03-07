@@ -1,3 +1,6 @@
 *.wav
 *.mp3
 __pycache__
+
+env/
+voice-auth/pretrained_models/
