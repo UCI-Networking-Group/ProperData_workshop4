@@ -42,14 +42,14 @@ while True:
     audio_in = listen()
     print(audio_in)
 
-    text_in = speech_to_text(audio_in)
+    text_in = speech_to_text(audio_in, 'openai')
     print(text_in)
 
     if verify_wakeword(text_in):
         text_out = chat(text_in)
         print(text_out)
 
-        audio_out = text_to_speech(text_out)
+        audio_out = text_to_speech(text_out, 'openai')
         print(audio_out)
 
         play(audio_out)

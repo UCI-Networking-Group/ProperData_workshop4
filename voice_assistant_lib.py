@@ -1,9 +1,11 @@
 '''Voice assistant library'''
 
+import io
 import json
 import logging
 import os
 import re
+import subprocess
 import time
 from pathlib import Path
 from typing import Any, Callable, Optional
@@ -15,7 +17,6 @@ import soundfile as sf
 import speech_recognition as sr
 from openai import OpenAI
 from platformdirs import user_cache_dir
-
 
 DEFAULT_CONFIG = {
     'app_name': 'properdata-voice-assistant',
@@ -54,7 +55,7 @@ class __G:
     __slots__ = (
         'cache_dir',
         'speech_recognizer',
-        'openai_client',
+        'openai_api_key',
         'chat_messages',
         'chat_tools',
         'functions',
@@ -71,7 +72,7 @@ class __G:
 
         self.wakewords: list[str] = config['wakewords']
 
-        self.openai_client = OpenAI(api_key=config['api_key'])
+        self.openai_api_key: Optional[str] = config['api_key'] or os.environ.get("OPENAI_API_KEY")
         logging.getLogger('httpx').setLevel(logging.WARNING)
 
         self.chat_messages = [{
@@ -130,6 +131,7 @@ def verify_wakeword(text_in):
 
 def chat(text_in):
     '''Interact with the GPT'''
+    openai = OpenAI(api_key=g.openai_api_key)
 
     g.chat_messages.append({
         "role": "user",
@@ -137,7 +139,7 @@ def chat(text_in):
     })
 
     while True:
-        response = g.openai_client.chat.completions.create(
+        response = openai.chat.completions.create(
             #model="gpt-3.5-turbo",
             model="gpt-4-0125-preview",
             messages=g.chat_messages,
@@ -204,29 +206,49 @@ def register_function(func):
     g.functions[func.__name__] = func
 
 
-def speech_to_text(audio_path):
+def speech_to_text(audio_path, backend='google'):
     '''Speech to text module'''
 
-    try:
-        response = g.openai_client.audio.transcriptions.create(
+    transcript = ''
+
+    if backend == 'openai':
+        # speech_recognizer's Whisper API is broken...
+        openai = OpenAI(api_key=g.openai_api_key)
+
+        response = openai.audio.transcriptions.create(
             model="whisper-1",
             file=Path(audio_path),
             language='en',
         )
+
         transcript = response.text
-    except sr.UnknownValueError:
-        logging.error('Whisper Recognition could not understand audio')
+    else:
+        with sr.AudioFile(audio_path) as source:
+            audio = g.speech_recognizer.record(source)
+
+        try:
+            match backend:
+                case 'sphinx':
+                    transcript = g.speech_recognizer.recognize_sphinx(audio)
+                case 'google':
+                    transcript = g.speech_recognizer.recognize_google(audio)
+        except sr.UnknownValueError:
+            logging.error('Could not understand audio')
+        except sr.RequestError:
+            logging.exception("Could not request results")
 
     return transcript
 
 
-def text_to_speech(text, backend='openai'):
+def text_to_speech(text, backend='gtts'):
     '''Text to speech (TTS) module'''
 
     out_path = os.path.join(g.cache_dir, f'tts-{time.time_ns()}.wav')
 
     if backend == 'openai':
-        with g.openai_client.audio.speech.with_streaming_response.create(
+        openai = OpenAI(api_key=g.openai_api_key)
+
+        with openai.audio.speech.with_streaming_response.create(
             model="tts-1",
             voice="alloy",
             response_format="wav",
@@ -235,6 +257,16 @@ def text_to_speech(text, backend='openai'):
             response.stream_to_file(out_path)
     elif backend == 'gtts':
         obj = gtts.gTTS(text=text, lang='en', slow=False)
-        obj.save(out_path)
+
+        # gTTS returns MP3 data. Convert to WAV for compatibility.
+        with io.BytesIO() as f:
+            obj.write_to_fp(f)
+            f.seek(0)
+            data, fs = sf.read(f)
+            sf.write(out_path, data, fs)
+    elif backend == 'pico':
+        subprocess.check_call(['pico2wave', f'-w={out_path}', '--', text])
+    else:
+        raise RuntimeError(f'Unknown backend: {backend}')
 
     return out_path
