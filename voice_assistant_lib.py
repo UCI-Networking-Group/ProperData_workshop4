@@ -29,6 +29,8 @@ DEFAULT_CONFIG = {
     'pause_threshold': 1,
     'dynamic_energy_threshold': False,
     'energy_threshold': 4000,
+
+    'log_level': 'INFO',
 }
 
 
@@ -88,7 +90,15 @@ g: Optional[__G] = None
 
 def init_voice_assistant(config={}):
     global g
-    g = __G(dict(DEFAULT_CONFIG, **config))
+
+    config = dict(DEFAULT_CONFIG, **config)
+
+    g = __G(config)
+
+    logging.basicConfig(
+        format='%(asctime)s [%(levelname)s] %(message)s',
+        level=logging.getLevelName(config['log_level'])
+    )
     logging.info('Voice assistant initialized')
 
 
