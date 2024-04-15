@@ -1,4 +1,4 @@
-from speechbrain.pretrained import SpeakerRecognition
+from speechbrain.inference.speaker import SpeakerRecognition
 import sys
 
 f1, f2 = sys.argv[1:]

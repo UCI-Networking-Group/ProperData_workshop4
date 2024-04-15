@@ -8,6 +8,7 @@ from voice_assistant_lib import (
     verify_wakeword,
     chat,
     register_function,
+    verify_voice,
 )
 
 CONFIG = {
@@ -19,7 +20,6 @@ CONFIG = {
     'energy_threshold': 4000,
 }
 
-logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s', level=logging.INFO)
 init_voice_assistant(CONFIG)
 
 def get_current_weather(location):
@@ -34,9 +34,33 @@ def get_current_weather(location):
         "weather": "sunny",
     }
 
+def get_secret():
+    '''
+    Get the secret passphrase.
+    The function will return the passphrase if it succesfully authenticate the user.
+    '''
+
+    instruction_audio = text_to_speech("Say 'Please authenticate me'", 'openai')
+    play(instruction_audio)
+    audio = listen()
+    verified = verify_voice(audio, 'voiceprint.wav')
+
+    if verified:
+        return {
+            'status': 'success',
+            'result': 'Down The Rabbit Hole',
+        }
+    else:
+        return {
+            'status': 'failed',
+            'error': 'No permission',
+        }
+
 
 register_function(get_current_weather)
+register_function(get_secret)
 
+verify_voice('voiceprint.wav', 'voiceprint.wav')
 
 while True:
     audio_in = listen()

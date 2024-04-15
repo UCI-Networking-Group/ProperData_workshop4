@@ -17,6 +17,7 @@ import soundfile as sf
 import speech_recognition as sr
 from openai import OpenAI
 from platformdirs import user_cache_dir
+from speechbrain.inference.speaker import SpeakerRecognition
 
 DEFAULT_CONFIG = {
     'app_name': 'properdata-voice-assistant',
@@ -62,6 +63,7 @@ class __G:
         'chat_tools',
         'functions',
         'wakewords',
+        'verification_model',
     )
 
     def __init__(self, config: dict[str, Any]):
@@ -75,7 +77,6 @@ class __G:
         self.wakewords: list[str] = config['wakewords']
 
         self.openai_api_key: Optional[str] = config['api_key'] or os.environ.get("OPENAI_API_KEY")
-        logging.getLogger('httpx').setLevel(logging.WARNING)
 
         self.chat_messages = [{
             "role": "system",
@@ -85,20 +86,26 @@ class __G:
         self.chat_tools: list[dict[str, Any]] = []
         self.functions: dict[str, Callable] = {}
 
+        self.verification_model: Optional[SpeakerRecognition] = None
+
 g: Optional[__G] = None
 
 
 def init_voice_assistant(config={}):
     global g
 
-    config = dict(DEFAULT_CONFIG, **config)
+    logging.getLogger('speechbrain.utils.fetching').setLevel(logging.WARNING)
+    logging.getLogger('speechbrain.utils.parameter_transfer').setLevel(logging.WARNING)
+    logging.getLogger('httpx').setLevel(logging.WARNING)
 
-    g = __G(config)
+    config = dict(DEFAULT_CONFIG, **config)
 
     logging.basicConfig(
         format='%(asctime)s [%(levelname)s] %(message)s',
         level=logging.getLevelName(config['log_level'])
     )
+
+    g = __G(config)
     logging.info('Voice assistant initialized')
 
 
@@ -280,3 +287,20 @@ def text_to_speech(text, backend='gtts'):
         raise RuntimeError(f'Unknown backend: {backend}')
 
     return out_path
+
+
+def verify_voice(audio_path, voiceprint_path):
+    '''Verify if the speech matches the voiceprint, for authentication'''
+
+    if g.verification_model is None:
+        g.verification_model = SpeakerRecognition.from_hparams(source="speechbrain/spkrec-ecapa-voxceleb")
+        logging.info('Speech verification model has been initialized')
+
+    score_ts, prediction_ts = g.verification_model.verify_files(audio_path, voiceprint_path)
+
+    score = score_ts.item()
+    prediction = prediction_ts.item()
+
+    logging.info("Speech verification: score=%.4f, result=%r", score, prediction)
+
+    return prediction
