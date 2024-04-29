@@ -53,7 +53,7 @@ def get_secret():
     else:
         return {
             'status': 'failed',
-            'error': 'No permission',
+            'error': 'Authentication failed',
         }
 
 
