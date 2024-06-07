@@ -139,6 +139,11 @@ def play(audio_path, block=True):
         sd.wait()
 
 
+def stop_playback():
+    '''Stop audio playback'''
+    sd.stop()
+
+
 def verify_wakeword(text_in):
     return re.search(
         r'\b(' + '|'.join(map(re.escape, g.wakewords)) + r')\b',
