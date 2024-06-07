@@ -136,7 +136,12 @@ def play(audio_path, block=True):
     sd.play(data, fs)
 
     if block:
-        sd.wait()
+        s = sd.get_stream()
+        try:
+            while s.active:
+                time.sleep(0.25)
+        except KeyboardInterrupt:
+            s.stop()
 
 
 def stop_playback():
