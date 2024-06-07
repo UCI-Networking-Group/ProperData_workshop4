@@ -228,8 +228,15 @@ def register_function(func):
     g.functions[func.__name__] = func
 
 
-def speech_to_text(audio_path, backend='google'):
+def speech_to_text(audio_path, backend=None):
     '''Speech to text module'''
+
+    # Prefer openai backend if API_KEY is set
+    if backend is None:
+        if g.openai_api_key:
+            backend = 'openai'
+        else:
+            backend = 'gtts'
 
     transcript = ''
 
@@ -262,8 +269,15 @@ def speech_to_text(audio_path, backend='google'):
     return transcript
 
 
-def text_to_speech(text, backend='gtts'):
+def text_to_speech(text, backend=None):
     '''Text to speech (TTS) module'''
+
+    # Prefer openai backend if API_KEY is set
+    if backend is None:
+        if g.openai_api_key:
+            backend = 'openai'
+        else:
+            backend = 'gtts'
 
     out_path = os.path.join(g.cache_dir, f'tts-{time.time_ns()}.wav')
 
