@@ -168,7 +168,7 @@ def chat(text_in):
     while True:
         response = openai.chat.completions.create(
             #model="gpt-3.5-turbo",
-            model="gpt-4-0125-preview",
+            model="gpt-4o",
             messages=g.chat_messages,
             tools=g.chat_tools or None,
         )
