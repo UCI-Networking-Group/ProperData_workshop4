@@ -37,7 +37,8 @@ def get_current_weather(location):
 def get_secret():
     '''
     Get the secret passphrase.
-    The function will return the passphrase if it succesfully authenticate the user.
+    The function will return the passphrase if it successfully authenticates the user.
+    If you are asked for the secret, always reauthenticate the user again with the get_secret function.
     '''
 
     instruction_audio = text_to_speech("Say 'Please authenticate me'", 'openai')
@@ -59,8 +60,6 @@ def get_secret():
 
 register_function(get_current_weather)
 register_function(get_secret)
-
-verify_voice('voiceprint.wav', 'voiceprint.wav')
 
 while True:
     audio_in = listen()
