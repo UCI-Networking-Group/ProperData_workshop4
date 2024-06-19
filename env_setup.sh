@@ -24,6 +24,7 @@ if true; then
     # Link on the Desktop
     ln -srnf "${WORKSPACE_DIR}" "$(xdg-user-dir DESKTOP)/workspace"
     # Bookmark in the file manager
+    mkdir -p ~/.config/gtk-3.0/
     echo "file://$HOME/workspace" > ~/.config/gtk-3.0/bookmarks
 
     msg "Cloning the code repo"
