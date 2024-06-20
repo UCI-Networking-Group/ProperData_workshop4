@@ -67,7 +67,8 @@ class __G:
     )
 
     def __init__(self, config: dict[str, Any]):
-        self.cache_dir = user_cache_dir(config['app_name'], ensure_exists=True)
+        #self.cache_dir = user_cache_dir(config['app_name'], ensure_exists=True)
+        self.cache_dir = os.path.join(os.getcwd(), "audio")
 
         self.speech_recognizer = sr.Recognizer()
         self.speech_recognizer.pause_threshold = config['pause_threshold']
@@ -117,6 +118,7 @@ def listen():
     with sr.Microphone() as source:
         audio = g.speech_recognizer.listen(source)
 
+    os.makedirs(g.cache_dir, exist_ok=True)
     out_path = os.path.join(g.cache_dir, f'audio-{time.time_ns()}.wav')
 
     with open(out_path, "wb") as f:
@@ -284,6 +286,7 @@ def text_to_speech(text, backend=None):
         else:
             backend = 'gtts'
 
+    os.makedirs(g.cache_dir, exist_ok=True)
     out_path = os.path.join(g.cache_dir, f'tts-{time.time_ns()}.wav')
 
     if backend == 'openai':
