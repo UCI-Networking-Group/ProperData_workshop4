@@ -10,14 +10,11 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Optional
 
-import docstring_parser
-import gtts
 import sounddevice as sd
 import soundfile as sf
 import speech_recognition as sr
 from openai import OpenAI
 from platformdirs import user_cache_dir
-from speechbrain.inference.speaker import SpeakerRecognition
 
 DEFAULT_CONFIG = {
     'app_name': 'properdata-voice-assistant',
@@ -56,6 +53,7 @@ Here are additional instructions from the user outlining your goals and how you 
 
 class __G:
     __slots__ = (
+        'audio_dir',
         'cache_dir',
         'speech_recognizer',
         'openai_api_key',
@@ -67,8 +65,8 @@ class __G:
     )
 
     def __init__(self, config: dict[str, Any]):
-        #self.cache_dir = user_cache_dir(config['app_name'], ensure_exists=True)
-        self.cache_dir = os.path.join(os.getcwd(), "audio")
+        self.cache_dir = user_cache_dir(config['app_name'], ensure_exists=True)
+        self.audio_dir = os.path.join(os.getcwd(), "audio")
 
         self.speech_recognizer = sr.Recognizer()
         self.speech_recognizer.pause_threshold = config['pause_threshold']
@@ -87,7 +85,7 @@ class __G:
         self.chat_tools: list[dict[str, Any]] = []
         self.functions: dict[str, Callable] = {}
 
-        self.verification_model: Optional[SpeakerRecognition] = None
+        self.verification_model = None
 
 g: Optional[__G] = None
 
@@ -95,6 +93,7 @@ g: Optional[__G] = None
 def init_voice_assistant(config={}):
     global g
 
+    logging.getLogger('speechbrain.utils.train_logger').setLevel(logging.WARNING)
     logging.getLogger('speechbrain.utils.fetching').setLevel(logging.WARNING)
     logging.getLogger('speechbrain.utils.parameter_transfer').setLevel(logging.WARNING)
     logging.getLogger('httpx').setLevel(logging.WARNING)
@@ -118,8 +117,8 @@ def listen():
     with sr.Microphone() as source:
         audio = g.speech_recognizer.listen(source)
 
-    os.makedirs(g.cache_dir, exist_ok=True)
-    out_path = os.path.join(g.cache_dir, f'audio-{time.time_ns()}.wav')
+    os.makedirs(g.audio_dir, exist_ok=True)
+    out_path = os.path.join(g.audio_dir, f'audio-{time.time_ns()}.wav')
 
     with open(out_path, "wb") as f:
         f.write(audio.get_wav_data(convert_rate=16000))
@@ -138,12 +137,10 @@ def play(audio_path, block=True):
     sd.play(data, fs)
 
     if block:
-        s = sd.get_stream()
         try:
-            while s.active:
-                time.sleep(0.25)
+            sd.wait()
         except KeyboardInterrupt:
-            s.stop()
+            sd.stop()
 
 
 def stop_playback():
@@ -197,6 +194,7 @@ def chat(text_in):
 
 def register_function(func):
     '''Add a function to the GPT'''
+    import docstring_parser
 
     # Populate the function description from docstring
     docstring = docstring_parser.parse(func.__doc__)
@@ -243,7 +241,7 @@ def speech_to_text(audio_path, backend=None):
         if g.openai_api_key:
             backend = 'openai'
         else:
-            backend = 'gtts'
+            backend = 'google'
 
     transcript = ''
 
@@ -286,8 +284,8 @@ def text_to_speech(text, backend=None):
         else:
             backend = 'gtts'
 
-    os.makedirs(g.cache_dir, exist_ok=True)
-    out_path = os.path.join(g.cache_dir, f'tts-{time.time_ns()}.wav')
+    os.makedirs(g.audio_dir, exist_ok=True)
+    out_path = os.path.join(g.audio_dir, f'tts-{time.time_ns()}.wav')
 
     if backend == 'openai':
         openai = OpenAI(api_key=g.openai_api_key)
@@ -300,6 +298,8 @@ def text_to_speech(text, backend=None):
         ) as response:
             response.stream_to_file(out_path)
     elif backend == 'gtts':
+        import gtts
+
         obj = gtts.gTTS(text=text, lang='en', slow=False)
 
         # gTTS returns MP3 data. Convert to WAV for compatibility.
@@ -319,8 +319,13 @@ def text_to_speech(text, backend=None):
 def verify_voice(audio_path, voiceprint_path):
     '''Verify if the speech matches the voiceprint, for authentication'''
 
+    from speechbrain.inference.speaker import SpeakerRecognition
+
     if g.verification_model is None:
-        g.verification_model = SpeakerRecognition.from_hparams(source="speechbrain/spkrec-ecapa-voxceleb")
+        g.verification_model = SpeakerRecognition.from_hparams(
+            source="speechbrain/spkrec-ecapa-voxceleb",
+            savedir=os.path.join(g.cache_dir, "speaker-recognition"),
+        )
         logging.info('Speech verification model has been initialized')
 
     score_ts, prediction_ts = g.verification_model.verify_files(audio_path, voiceprint_path)
