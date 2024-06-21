@@ -15,6 +15,15 @@ if true; then
     # Cleaning up existing directories
     rm -rf "${REPO_DIR}" "${VENV_DIR}"
 
+    msg "Setup keyboard layout"
+    sudo tee /boot/os_config.json <<EOF
+{
+    "keyboard": "us",
+    "language": "en"
+}
+EOF
+    sudo raspi-config --apply-os-config
+
     msg "Installing system dependencies"
     sudo apt-get -qq update
     sudo apt-get -qq install -y portaudio19-dev libttspico-utils vim
