@@ -17,7 +17,8 @@ if true; then
 
     msg "Installing system dependencies"
     sudo apt-get -qq update
-    sudo apt-get -qq install -y portaudio19-dev libttspico-utils
+    sudo apt-get -qq install -y portaudio19-dev libttspico-utils vim
+    sudo apt-get -qq purge -y geany geany-common
 
     msg "Creating the workspace directory"
     mkdir -p "${WORKSPACE_DIR}"
@@ -30,6 +31,7 @@ if true; then
     msg "Cloning the code repo"
     git clone --quiet https://github.com/UCI-Networking-Group/ProperData_workshop4.git "${REPO_DIR}"
     ln -srf "${REPO_DIR}/voice_assistant_lib.py" "${WORKSPACE_DIR}/"
+    ln -srf "${REPO_DIR}/extra_functions.py" "${WORKSPACE_DIR}/"
 
     msg "Setting up Python environment"
     python -m venv "${VENV_DIR}"
@@ -39,6 +41,7 @@ if true; then
     echo "source ${VENV_DIR}/bin/activate  ### For workshop" >> ~/.bashrc
 
     # Thonny configuration
+    xdg-mime default org.thonny.Thonny.desktop text/x-python
     mkdir -p ~/.config/Thonny/
     cat > ~/.config/Thonny/configuration.ini << EOF
 [general]
@@ -82,8 +85,8 @@ show_line_numbers = True
 recommended_line_length = 0
 
 [LocalCPython]
-last_configurations = [{'run.backend_name': 'LocalCPython', 'LocalCPython.executable': '/home/pi/workspace/.venv/bin/python'}, {'run.backend_name': 'LocalCPython', 'LocalCPython.executable': '/usr/bin/python3'}]
-executable = /home/pi/workspace/.venv/bin/python
+last_configurations = [{'run.backend_name': 'LocalCPython', 'LocalCPython.executable': '$HOME/workspace/.venv/bin/python'}, {'run.backend_name': 'LocalCPython', 'LocalCPython.executable': '/usr/bin/python3'}]
+executable = $HOME/workspace/.venv/bin/python
 
 [run]
 backend_name = LocalCPython
@@ -96,6 +99,7 @@ warn_module_shadowing = True
 birdseye_port = 7777
 run_in_terminal_python_repl = False
 run_in_terminal_keep_open = True
+working_directory = $HOME/workspace/
 
 [assistance]
 disabled_checks = []
