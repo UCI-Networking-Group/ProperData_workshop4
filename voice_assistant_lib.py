@@ -115,7 +115,11 @@ def listen():
     logging.info('Listening...')
 
     with sr.Microphone() as source:
-        audio = g.speech_recognizer.listen(source)
+        try:
+            audio = g.speech_recognizer.listen(source)
+        except KeyboardInterrupt:
+            logging.info('Exiting the program...')
+            exit(0)
 
     os.makedirs(g.audio_dir, exist_ok=True)
     out_path = os.path.join(g.audio_dir, f'audio-{time.time_ns()}.wav')
