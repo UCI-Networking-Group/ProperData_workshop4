@@ -31,11 +31,21 @@ EOF
 
     msg "Creating the workspace directory"
     mkdir -p "${WORKSPACE_DIR}"
-    # Link on the Desktop
-    ln -srnf "${WORKSPACE_DIR}" "$(xdg-user-dir DESKTOP)/workspace"
     # Bookmark in the file manager
     mkdir -p ~/.config/gtk-3.0/
     echo "file://$HOME/workspace" > ~/.config/gtk-3.0/bookmarks
+
+    msg "Setup Desktop"
+    # Link on the Desktop
+    ln -srnf "${WORKSPACE_DIR}" "$(xdg-user-dir DESKTOP)/workspace"
+    cat > "$(xdg-user-dir DESKTOP)/student_agenda.desktop" << EOF
+[Desktop Entry]
+Encoding=UTF-8
+Name=Student Agenda
+Type=Link
+URL=https://tinyurl.com/iotai-agenda
+Icon=text-html
+EOF
 
     msg "Cloning the code repo"
     git clone --quiet https://github.com/UCI-Networking-Group/ProperData_workshop4.git "${REPO_DIR}"
