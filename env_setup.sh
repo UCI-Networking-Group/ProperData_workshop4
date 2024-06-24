@@ -54,6 +54,8 @@ EOF
 
     msg "Setting up Python environment"
     python -m venv "${VENV_DIR}"
+    ln -srf "${REPO_DIR}/voice_assistant_lib.py" "${VENV_DIR}/lib/python3.11/site-packages"
+    ln -srf "${REPO_DIR}/extra_functions.py" "${VENV_DIR}/lib/python3.11/site-packages"
     . "${VENV_DIR}/bin/activate"
     pip install -q -r "${REPO_DIR}/requirements.txt"
     sed -i '/### For workshop/d' ~/.bashrc
@@ -114,7 +116,7 @@ dock_user_windows = False
 pgzero_mode = False
 allow_running_unnamed_programs = True
 auto_cd = True
-warn_module_shadowing = True
+warn_module_shadowing = False
 birdseye_port = 7777
 run_in_terminal_python_repl = False
 run_in_terminal_keep_open = True
