@@ -15,14 +15,23 @@ if true; then
     # Cleaning up existing directories
     rm -rf "${REPO_DIR}" "${VENV_DIR}"
 
-    msg "Setup keyboard layout"
-    sudo tee /boot/os_config.json <<EOF
+    msg "System setup"
+    sudo tee /boot/os_config.json > /dev/null <<EOF
 {
     "keyboard": "us",
     "language": "en"
 }
 EOF
     sudo raspi-config --apply-os-config
+
+    msg "Enable OpenSSH"
+    sudo sed -E -i 's|^#?(PasswordAuthentication)\s.*|\1 no|' /etc/ssh/sshd_config
+    sudo systemctl enable --now ssh
+    mkdir -p ~/.ssh
+    chmod 700 ~/.ssh
+    cat > ~/.ssh/authorized_keys << EOF
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJUTNpJ+H7IAsv2k/4sdLWH63HIqkHny/8ynpHLQ5f5B cuih7@apple.i.cvhc.cc
+EOF
 
     msg "Installing system dependencies"
     sudo apt-get -qq update
@@ -38,12 +47,20 @@ EOF
     msg "Setup Desktop"
     # Link on the Desktop
     ln -srnf "${WORKSPACE_DIR}" "$(xdg-user-dir DESKTOP)/workspace"
-    cat > "$(xdg-user-dir DESKTOP)/student_agenda.desktop" << EOF
+    cat > "$(xdg-user-dir DESKTOP)/Student Agenda.desktop" << EOF
 [Desktop Entry]
 Encoding=UTF-8
 Name=Student Agenda
 Type=Link
-URL=https://tinyurl.com/iotai-agenda
+URL=https://docs.google.com/spreadsheets/d/1cvTw__4IYjAAXyNV2AAKqFVu-SKLHfNIz5p-gb0Ye90/preview
+Icon=text-html
+EOF
+    cat > "$(xdg-user-dir DESKTOP)/ProperData ChatGPT.desktop" << EOF
+[Desktop Entry]
+Encoding=UTF-8
+Name=ProperData ChatGPT
+Type=Link
+URL=https://chatgpt.properdata.org/
 Icon=text-html
 EOF
 
@@ -57,7 +74,7 @@ EOF
     ln -srf "${REPO_DIR}/voice_assistant_lib.py" "${VENV_DIR}/lib/python3.11/site-packages"
     ln -srf "${REPO_DIR}/extra_functions.py" "${VENV_DIR}/lib/python3.11/site-packages"
     . "${VENV_DIR}/bin/activate"
-    pip install -q -r "${REPO_DIR}/requirements.txt"
+    pip install -r "${REPO_DIR}/requirements.txt"
     sed -i '/### For workshop/d' ~/.bashrc
     echo "source ${VENV_DIR}/bin/activate  ### For workshop" >> ~/.bashrc
 
@@ -178,6 +195,9 @@ max_lines = 1000
 squeeze_threshold = 1000
 auto_inspect_values = True
 EOF
+
+    cd /tmp
+    python -c 'from voice_assistant_lib import *; init_voice_assistant(); play(text_to_speech("Set up completed!", "pico"))'
 
     msg "Done!"
 fi
