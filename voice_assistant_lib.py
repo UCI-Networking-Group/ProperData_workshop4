@@ -278,7 +278,7 @@ def speech_to_text(audio_path, backend=None):
     return transcript
 
 
-def text_to_speech(text, backend=None):
+def text_to_speech(text, backend=None, voice="alloy"):
     '''Text to speech (TTS) module'''
 
     # Prefer openai backend if API_KEY is set
@@ -296,7 +296,7 @@ def text_to_speech(text, backend=None):
 
         with openai.audio.speech.with_streaming_response.create(
             model="tts-1",
-            voice="alloy",
+            voice=voice,
             response_format="wav",
             input=text,
         ) as response:
