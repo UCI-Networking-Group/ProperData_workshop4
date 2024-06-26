@@ -1,8 +1,12 @@
+import csv
+from io import StringIO
 import random
 
-from gpiozero import RGBLED
-import requests
+from duckduckgo_search import DDGS
 import feedparser
+from gpiozero import RGBLED
+from openai import OpenAI
+import requests
 
 
 def set_light_color(red, green, blue):
@@ -26,9 +30,9 @@ def set_light_color(red, green, blue):
     return True
 
 
-def get_news():
+def get_nytimes_news_headlines():
     '''
-    Get news headlines.
+    Get NYTimes news headlines.
     '''
     feed = feedparser.parse('https://rss.nytimes.com/services/xml/rss/nyt/US.xml')
 
@@ -48,20 +52,72 @@ def get_news():
     return news_list
 
 
-def mystore_query_product(product_name):
+def search_news(keywords):
+    '''
+    Search for news related to the given keywords.
+    List of dictionaries with news search results.
+
+    :param str keywords: The keywords to search for. Cannot be empty.
+    '''
+
+    return DDGS().news(keywords, max_results=10)
+
+
+def mystore_query_product(keywords):
     '''
     Search for products on MyStore.
     The function will return the matched product ID and price.
 
-    :param str product_name: The keyword to search for, e.g., "PC keyboard".
+    :param str keywords: The keywords to search for, e.g., "PC keyboard".
     '''
-    product_id = random.randint(0, 9999)
-    price = random.randint(1, 99)
+    # Caveat: You will have to call init_voice_assistant first
+    from voice_assistant_lib import g
 
-    return {
-        'product_id': product_id,
-        'price': price,
-    }
+    global _mystore_products
+
+    if '_mystore_products' not in globals():
+        _mystore_products = {}
+
+    openai = OpenAI(api_key=g.openai_api_key)
+
+    response = openai.chat.completions.create(
+        model="gpt-3.5-turbo",
+        temperature=0,
+        messages=[{
+            'role': 'user',
+            'content': ''.join([
+                'Your task is to generate mock shopping API responses. ',
+                f'Given keywords: "${keywords}", ',
+                'return a list of related product in CSV format, ',
+                'with two columns: name and price (in US dollars, a number).',
+            ]),
+        }],
+    )
+
+    assistant_message = response.choices[0].message
+    response = []
+
+    with StringIO(assistant_message.content) as f:
+        reader = csv.reader(f, delimiter=',')
+
+        for row in reader:
+            name, price = row
+
+            if price.replace('.', '', 1).isdigit():
+                product_id = str(random.randint(10000000, 99999999))
+
+                product_info = {
+                    'product_name': name,
+                    'price': price,
+                }
+
+                _mystore_products[product_id] = product_info
+                response.append({
+                    'product_id': product_id,
+                    **product_info,
+                })
+
+    return response
 
 
 def mystore_submit_order(product_id, count):
