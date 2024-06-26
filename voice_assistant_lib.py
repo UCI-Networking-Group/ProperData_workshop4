@@ -182,9 +182,16 @@ def chat(text_in):
             break
 
         for tool_call in assistant_message.tool_calls:
-            func = g.functions[tool_call.function.name]
-            params = json.loads(tool_call.function.arguments)
+            f_name = tool_call.function.name
+            f_args = tool_call.function.arguments
+            func = g.functions[f_name]
+            params = json.loads(f_args)
             result = func(**params)
+
+            logging.info(
+                'ChatGPT calls function %r with params %r',
+                f_name, f_args,
+            )
 
             g.chat_messages.append({
                 "role": "function",
