@@ -7,6 +7,7 @@ import os
 import re
 import subprocess
 import time
+import traceback
 from pathlib import Path
 from typing import Any, Callable, Optional
 
@@ -184,14 +185,20 @@ def chat(text_in):
         for tool_call in assistant_message.tool_calls:
             f_name = tool_call.function.name
             f_args = tool_call.function.arguments
-            func = g.functions[f_name]
-            params = json.loads(f_args)
-            result = func(**params)
 
             logging.info(
                 'ChatGPT calls function %r with params %r',
                 f_name, f_args,
             )
+
+            func = g.functions[f_name]
+            params = json.loads(f_args)
+
+            try:
+                result = func(**params)
+            except Exception as e:
+                logging.exception("Got an exception in function call")
+                result = {"error": traceback.format_exception_only(e)}
 
             g.chat_messages.append({
                 "role": "function",
