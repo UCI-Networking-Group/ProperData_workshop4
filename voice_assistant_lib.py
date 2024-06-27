@@ -7,6 +7,7 @@ import os
 import re
 import subprocess
 import time
+import tempfile
 import traceback
 from pathlib import Path
 from typing import Any, Callable, Optional
@@ -346,7 +347,7 @@ def verify_voice(audio_path, voiceprint_path):
         )
         logging.info('Speech verification model has been initialized')
 
-    score_ts, prediction_ts = g.verification_model.verify_files(audio_path, voiceprint_path)
+    score_ts, prediction_ts = g.verification_model.verify_files(audio_path, voiceprint_path, savedir=tempfile.gettempdir())
 
     score = score_ts.item()
     prediction = prediction_ts.item()
