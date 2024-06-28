@@ -46,7 +46,7 @@ def get_nytimes_news_headlines():
             "title": entry['title'],
             "summary": entry['summary'],
             "time_published": entry['published'],
-            "tags": [i['term'] for i in entry['tags']],
+            "tags": [i['term'] for i in entry.get('tags', [])],
         })
 
     return news_list
